@@ -1,1 +1,3 @@
-name: constant
+name: constant_warmup
+warmup_steps: 10000 # optimizer steps
+warmup_start_lr: 1.0e-6

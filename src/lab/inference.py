@@ -10,7 +10,7 @@ from lab.dataset.utils import get_dataloaders
 from lab.logger import setup_logging
 from lab.training.inferencer import Inferencer
 from lab.utils.init import set_random_seed
-from lab.utils.io import get_root
+from lab.utils.io import get_root, write_json
 
 
 @hydra.main(
@@ -46,6 +46,11 @@ def main(config: DictConfig) -> None:
     model = instantiate(config.model).to(device)
     logger.info(f'Model:\n{model}')
 
+    # frozen BAE that decodes the sampled latents into images; its decoder is compiled
+    bae = instantiate(config.bae).to(device).eval().requires_grad_(False)
+    bae.decoder.compile()
+    logger.info(f'BAE: {bae}')
+
     metrics = instantiate(config.metrics)
     logger.info(f'Metrics: {metrics}')
 
@@ -54,6 +59,7 @@ def main(config: DictConfig) -> None:
         device=device,
         dataloaders=dataloaders,
         model=model,
+        bae=bae,
         metrics=metrics,
         save_path=save_path,
         batch_transforms=batch_transforms,
@@ -63,6 +69,7 @@ def main(config: DictConfig) -> None:
     logs = inferencer.run_inference()
     for part, part_logs in logs.items():
         logger.info(f'\n{part} metrics:\n{yaml.dump(part_logs)}')
+    write_json(logs, save_path / 'metrics.json')
 
 
 if __name__ == '__main__':

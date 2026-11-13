@@ -1,0 +1,15 @@
+train:
+  _target_: lab.dataset.images.LSUNChurchesDataset
+  split: train
+  limit: null
+  shuffle_index: true
+  instance_transforms: ${transforms.instance_transforms.train}
+  force_reindex: false
+
+test:
+  _target_: lab.dataset.images.LSUNChurchesDataset
+  split: test
+  limit: null
+  shuffle_index: false
+  instance_transforms: ${transforms.instance_transforms.inference}
+  force_reindex: false

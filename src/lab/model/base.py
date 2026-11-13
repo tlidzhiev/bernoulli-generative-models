@@ -1,10 +1,24 @@
+import torch
 from torch import nn
 
 
 class BaseModel(nn.Module):
     """
     Base class for all models.
+
+    Attributes
+    ----------
+    denoiser : nn.Module
+        Network that is trained and compiled, set by the generative models.
     """
+
+    denoiser: nn.Module
+
+    def sample(self, num_samples: int, **kwargs) -> torch.Tensor:
+        """
+        Generate samples, implemented by the generative models.
+        """
+        raise NotImplementedError(f'{type(self).__name__} must implement sample method.')
 
     def __str__(self) -> str:
         """

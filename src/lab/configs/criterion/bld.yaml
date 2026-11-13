@@ -1,0 +1,7 @@
+_target_: lab.loss.binary_diffusion.BinaryDiffusionLoss
+num_timesteps: ${model.num_timesteps}
+p_flip: ${model.p_flip}
+weighting: mean
+focal: 0.0
+aux: 0.0
+schedule: ${model.schedule}

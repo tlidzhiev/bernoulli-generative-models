@@ -54,6 +54,12 @@ def main(config: DictConfig) -> None:
     )
     logger.info(f'LR Scheduler: {lr_scheduler}')
 
+    # frozen BAE that encodes the images into the binary latents; its heavy parts are compiled
+    bae = instantiate(config.bae).to(device).eval().requires_grad_(False)
+    bae.encoder.compile()
+    bae.decoder.compile()
+    logger.info(f'BAE: {bae}')
+
     criterion = instantiate(config.criterion).to(device)
     logger.info(f'Criterion: {criterion}')
     metrics = instantiate(config.metrics)
@@ -64,6 +70,7 @@ def main(config: DictConfig) -> None:
         device=device,
         dataloaders=dataloaders,
         model=model,
+        bae=bae,
         criterion=criterion,
         metrics=metrics,
         optimizer=optimizer,

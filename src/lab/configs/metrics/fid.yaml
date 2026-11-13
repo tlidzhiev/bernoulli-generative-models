@@ -1,0 +1,7 @@
+# FID with InceptionV3 features (torch-fidelity weights)
+device: "auto"
+train: []
+inference:
+  - _target_: lab.metrics.fid.FID
+    features: inception
+    device: ${metrics.device}

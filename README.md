@@ -1,4 +1,4 @@
-# Research Project Template
+# Bernoulli Generative Models
 
 <p align="center">
   <a href="#about">About</a> •
@@ -10,7 +10,7 @@
 
 ## About
 
-This repository is a template for PyTorch research projects. It provides Hydra-based configs, a trainer with EMA, mixed precision (AMP), gradient accumulation, checkpointing, resuming and early stopping, an inferencer, and CometML experiment tracking. MNIST classification with a small MLP is included as a working example.
+Generative models over binary latents: Binary Latent Diffusion (`bld`, [paper](https://arxiv.org/abs/2304.04820)) and the Bernoulli Flow Model (`bfm`, [paper](https://arxiv.org/abs/2610.11362)), trained on the latents of a frozen pretrained binary autoencoder (C64) for CelebA-HQ and LSUN Churches.
 
 ## Installation
 
@@ -22,8 +22,8 @@ This repository is a template for PyTorch research projects. It provides Hydra-b
 
 ```bash
 # Clone the repository
-git clone https://github.com/tlidzhiev/research-project-template.git
-cd research-project-template
+git clone https://github.com/tlidzhiev/bernoulli-generative-models.git
+cd bernoulli-generative-models
 
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -37,7 +37,35 @@ uv sync
 
 # Install pre-commit
 pre-commit install
+
+# Download the pretrained C64 binary autoencoder of the authors (~330 MB) into
+# checkpoints/BAE_C64/ and check that it loads
+uv run --group download scripts/download_bae.py
 ```
+
+The binary autoencoder is frozen: during training it encodes the images into binary latents.
+If the automatic download fails (Google Drive quota), download `binaryae_ema_8100000.th` from the
+[authors' folder](https://drive.google.com/drive/folders/1CFlixXLnEHZ0jaRLXLS4d_bJMZwG-Iih)
+and put it to `checkpoints/BAE_C64/`.
+
+### Precomputing latents
+
+To avoid running the autoencoder encoder during training, precompute the training latents:
+
+```bash
+uv run scripts/precompute_latents.py --dataset celebahq --split train
+```
+
+Latents are saved to `data/celebahq/latents/train/` (about 14.7 GB with the default 16
+augmentations). Train on them with:
+
+```bash
+uv run train dataset=celebahq_latents
+```
+
+Use `--dataset churches` to precompute LSUN Churches latents. See
+`uv run scripts/precompute_latents.py --help` for options such as the number of augmentations and
+output directory. A completed output directory cannot be reused unless you pass `--force`.
 
 ### CometML Configuration
 
@@ -64,36 +92,34 @@ uv run <script> -cn=CONFIG_NAME HYDRA_CONFIG_ARGUMENTS
 - `CONFIG_NAME`: A config file from `src/lab/configs` (`train` and `inference` by default)
 - `HYDRA_CONFIG_ARGUMENTS`: Optional Hydra overrides
 
-MNIST is downloaded and indexed into `data/mnist` on the first run. Runs are saved to `logs/{project_name}/{run_name}`, with checkpoints in the `checkpoints` subdirectory.
+By default the Binary Latent Diffusion (`model=bld`) is trained. To train the Bernoulli Flow Model instead
+(the matching loss `criterion/<model>.yaml` is selected automatically):
+
+```bash
+uv run train model=bfm
+```
 
 ## Examples
 
-Train the baseline model with online logging:
+Train the Binary Latent Diffusion on the precomputed latents:
 
 ```bash
-uv run train writer.run_name=baseline writer.mode=online
+uv run train dataset=celebahq_latents writer.run_name=BLD_celeba_latents writer.mode=online \
+  dataloader.train.batch_size=256 trainer.grad_accum_steps=1 trainer.compile={mode: default}
 ```
 
-Train with the best-checkpoint selection and early stopping on the test accuracy:
+Train the Bernoulli Flow Model:
 
 ```bash
-uv run train writer.run_name=baseline trainer.monitor="max test_AccuracyMetric" trainer.early_stop=3
+uv run train dataset=celebahq_latents model=bfm writer.run_name=BFM_celeba_latents writer.mode=online \
+  dataloader.train.batch_size=256 trainer.grad_accum_steps=1 trainer.compile={mode: default}
 ```
 
-Training runs for `trainer.total_steps` optimizer steps. Validation runs every
-`trainer.eval_every_steps`; periodic checkpoints are written after an evaluation when
-`trainer.checkpoint_every_steps` is reached. A new best checkpoint is saved after any
-evaluation that improves the monitored metric. Resume from a checkpoint of the same run:
+Generate images with the EMA weights, compute FID and save the results to `data/saved/bld`:
 
 ```bash
-uv run train writer.run_name=baseline trainer.resume_from=checkpoint-step-1000.pth
-```
-
-Evaluate the best checkpoint with the EMA weights and save the predictions to `data/saved/baseline`:
-
-```bash
-uv run inference inferencer.from_pretrained=logs/research-project-template/baseline/checkpoints/model-best.pth \
-  inferencer.use_ema=true inferencer.save_path=baseline
+uv run inference inferencer.from_pretrained=path/to/model-best.pth \
+  inferencer.use_ema=true inferencer.save_path=bld
 ```
 
 ## Credits

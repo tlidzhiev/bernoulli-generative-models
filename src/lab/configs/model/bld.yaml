@@ -1,0 +1,14 @@
+_target_: lab.model.diffusion.BinaryDiffusion
+num_timesteps: 64
+schedule: linear
+p_flip: true
+cond_dropout: 0.0
+denoiser:
+  _target_: lab.model.denoiser.DenoisingTransformer
+  codebook_size: 64
+  latent_size: 16
+  num_timesteps: ${..num_timesteps}
+  embed_dim: 768
+  num_heads: 12
+  num_layers: 24
+  condition: none

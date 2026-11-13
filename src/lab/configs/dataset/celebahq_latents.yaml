@@ -1,0 +1,17 @@
+# Train on the latents precomputed by scripts/precompute_latents.py instead of encoding the
+# images online (the instance and train batch transforms are not applied to them), run with:
+# uv run train dataset=celebahq_latents
+# The test partition keeps the images: the loss is computed with the online encoder.
+train:
+  _target_: lab.dataset.latents.LatentDataset
+  name: celebahq
+  split: train
+  limit: null
+
+test:
+  _target_: lab.dataset.images.CelebAHQDataset
+  split: test
+  limit: null
+  shuffle_index: false
+  instance_transforms: ${transforms.instance_transforms.inference}
+  force_reindex: false

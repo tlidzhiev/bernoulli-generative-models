@@ -1,0 +1,7 @@
+# C64 binary autoencoder of the authors (trained on LAION), frozen: its encoder produces the
+# latents online during training, its decoder turns the samples back into images:
+# https://drive.google.com/drive/folders/1CFlixXLnEHZ0jaRLXLS4d_bJMZwG-Iih
+_target_: lab.model.bae.BinaryAutoEncoder.from_pretrained
+checkpoint_path: checkpoints/BAE_C64/binaryae_ema_8100000.th # relative to the project root
+codebook_size: 64
+decoder_mult: 1

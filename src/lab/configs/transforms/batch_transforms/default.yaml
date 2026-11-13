@@ -1,2 +1,19 @@
-train: null
-inference: null
+# instance transforms return uint8 images, they are scaled to float32 in [0, 1] on the device
+train:
+  img:
+    _target_: torch.nn.Sequential
+    _args_:
+      - _target_: torchvision.transforms.v2.ToDtype
+        dtype:
+          _target_: hydra.utils.get_object
+          path: torch.float32
+        scale: true
+inference:
+  img:
+    _target_: torch.nn.Sequential
+    _args_:
+      - _target_: torchvision.transforms.v2.ToDtype
+        dtype:
+          _target_: hydra.utils.get_object
+          path: torch.float32
+        scale: true

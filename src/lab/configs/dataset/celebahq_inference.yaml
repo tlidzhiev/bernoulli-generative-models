@@ -1,0 +1,9 @@
+# Real images for FID, one image is generated per real one. The 'test' partition is the whole
+# CelebA-HQ train split (30k images) with the center crop: the test split is too small for a stable FID.
+test:
+  _target_: lab.dataset.images.CelebAHQDataset
+  split: train
+  limit: null
+  shuffle_index: false
+  instance_transforms: ${transforms.instance_transforms.inference}
+  force_reindex: false

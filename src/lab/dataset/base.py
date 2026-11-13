@@ -45,13 +45,13 @@ class BaseDataset(Dataset):
         """
         Load an element, preprocess it, and combine it into a dict.
 
-        The key names ('img', 'label') must stay consistent across the dataset,
+        The key name ('img') must stay consistent across the dataset,
         collate_fn, loss and model.
         """
         data_dict = self._index[index]
         data_path = data_dict['path']
         data_object = self.load_object(data_path)
-        instance_data = {'img': data_object, 'label': data_dict['label']}
+        instance_data = {'img': data_object}
         instance_data = self.preprocess_data(instance_data)
         return instance_data
 

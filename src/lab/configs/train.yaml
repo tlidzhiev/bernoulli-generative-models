@@ -4,39 +4,45 @@ hydra:
 
 defaults:
   - _self_
-  - dataset: mnist
+  - dataset: celebahq
   - dataloader: default
   - transforms: default
-  - model: baseline
-  - criterion: ce
+  - model: bld
+  - bae: c64
+  - criterion: ${model} # the loss with the same name as the model
   - metrics: default
   - optimizer: default
-  - lr_scheduler: cosine
+  - lr_scheduler: default
   - writer: cometml
 
 trainer:
   log_step: 100 # optimizer steps between train logs
-  log_images: 16 # images in the logged grid of predictions
+  log_images: 16 # images generated and logged at the end of each evaluation epoch (0 to disable)
   debug: false # true to measure data_time / step_time (synchronizes CUDA at each step)
-  total_steps: 10000 # total optimizer steps
-  eval_every_steps: 1000 # validation frequency; also defines metric reporting windows
-  device_tensors: ["img", "label"]
+  total_steps: 100000 # total optimizer steps
+  eval_every_steps: 10000 # validation frequency; also defines metric reporting windows
+  device_tensors: ["img", "probs"]
   resume_from: null # null or checkpoint file name inside checkpoint_dir (*.pth)
   from_pretrained: null # null or path to the model checkpoint (*.pth file)
   device: "auto" # device name or "auto"
   monitor: "off" # "off" or "max/min metric_name"
-  checkpoint_every_steps: 1000 # periodic checkpoint frequency
+  checkpoint_every_steps: 20000 # periodic checkpoint frequency
   only_best: false # true to save only model-best.pth (requires monitor)
   early_stop: null # evaluations without improvement before stopping
   override: false # overwrite an existing run dir with the same writer.run_name
   skip_oom: true
   max_grad_norm: null
-  grad_accum_steps: 1 # batches per optimizer step (effective batch size = batch_size * grad_accum_steps)
-  use_bfloat16: false
-  compile: null # null (eager) or torch.compile kwargs, e.g. {mode: default, fullgraph: false}
+  grad_accum_steps: 4 # batches per optimizer step (effective batch size = batch_size * grad_accum_steps)
+  use_bfloat16: true
+  compile: null  # null (eager) or torch.compile kwargs, e.g. {mode: default, fullgraph: false}
   checkpoint_dir: ${writer.log_dir}/checkpoints
   seed: 42
   ema:
-    decay: 0.999
-    update_every: 1
-    warmup_steps: 0 # steps with linearly increasing decay (0 = disabled)
+    decay: 0.995 # per EMA update, i.e. 0.995 ** (1 / update_every) per optimizer step
+    update_every: 10 # optimizer steps between EMA updates (1 = every step)
+    warmup_steps: 0 # optimizer steps with linearly increasing decay (0 = disabled)
+
+  deterministic_latents: false # true to threshold the BAE probabilities instead of sampling the latents
+  sample_temperature: 1.0 # sampling temperature of the logged images
+  sample_num_steps: null # null for all diffusion steps, int <= model.num_timesteps for fewer
+  sample_seed: 42 # seed of the sampling noise of the logged images, the same each epoch (null for random)

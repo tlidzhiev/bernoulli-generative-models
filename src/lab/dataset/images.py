@@ -1,10 +1,9 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import safetensors.torch
-import torch
 from datasets import load_dataset
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
@@ -16,10 +15,14 @@ from .base import BaseDataset
 logger = logging.getLogger(__name__)
 
 
-class MNISTDataset(BaseDataset):
+class HFImageDataset(BaseDataset):
     """
-    MNIST dataset, see https://yann.lecun.com/exdb/mnist/.
+    Unconditional image dataset from the Hugging Face Hub.
     """
+
+    name: str
+    hf_path: str
+    hf_splits: ClassVar[dict[str, str]]
 
     def __init__(
         self,
@@ -34,7 +37,7 @@ class MNISTDataset(BaseDataset):
         Parameters
         ----------
         root : Path or str or None, optional
-            Dataset directory relative to the project root. If None, 'data/mnist/{split}'.
+            Dataset directory relative to the project root. If None, 'data/{name}/{split}'.
         split : {'train', 'test'}, optional
             Dataset split.
         limit : int or None, optional
@@ -47,7 +50,7 @@ class MNISTDataset(BaseDataset):
             Recreate the index file even if it exists.
         """
         if root is None:
-            root = get_root() / 'data' / 'mnist' / split
+            root = get_root() / 'data' / self.name / split
         else:
             root = get_root() / root
 
@@ -70,36 +73,51 @@ class MNISTDataset(BaseDataset):
         data_path: Path,
     ) -> list[dict[str, Any]]:
         """
-        Download MNIST, save each image as a safetensors file and write index.json.
+        Download the dataset, save each image as a safetensors file and write index.json.
 
         Returns
         -------
         list[dict[str, Any]]
-            Index with the 'path' and 'label' of each element.
+            Index with the 'path' of each element.
         """
 
         index: list[dict[str, Any]] = []
         data_path.mkdir(exist_ok=True, parents=True)
 
-        transform = v2.Compose(
-            [
-                v2.ToImage(),
-                v2.ToDtype(torch.float32, scale=True),
-            ]
-        )
-        mnist_dataset = load_dataset('ylecun/mnist', split=split)
+        transform = v2.Compose([v2.ToImage(), v2.Resize(268, antialias=True), v2.CenterCrop(268)])
+        hf_dataset = load_dataset(self.hf_path, split=self.hf_splits[split])
 
-        logger.info(f'Processing MNIST data for {split} part...')
-        for i, item in tqdm(enumerate(mnist_dataset), total=len(mnist_dataset)):
-            img, label = transform(item['image']), item['label']
+        logger.info(f'Processing {self.name} data for {split} part...')
+        for i, item in tqdm(enumerate(hf_dataset), total=len(hf_dataset)):
+            img = transform(item['image'].convert('RGB')).contiguous()
 
             save_dict = {'img': img}
             save_path = data_path / f'{i:06}.safetensors'
             safetensors.torch.save_file(save_dict, save_path)
 
-            index.append({'path': str(save_path), 'label': int(label)})
+            index.append({'path': str(save_path)})
 
         write_json(index, str(data_path / 'index.json'))
 
-        logger.info(f'Successfully processed {len(index)} {split} MNIST images.')
+        logger.info(f'Successfully processed {len(index)} {split} {self.name} images.')
         return index
+
+
+class CelebAHQDataset(HFImageDataset):
+    """
+    CelebA-HQ at 256x256, see https://github.com/tkarras/progressive_growing_of_gans.
+    """
+
+    name = 'celebahq'
+    hf_path = 'korexyz/celeba-hq-256x256'
+    hf_splits: ClassVar[dict[str, str]] = {'train': 'train', 'test': 'validation'}
+
+
+class LSUNChurchesDataset(HFImageDataset):
+    """
+    LSUN Churches (church_outdoor), see https://www.yf.io/p/lsun.
+    """
+
+    name = 'churches'
+    hf_path = 'tglcourse/lsun_church_train'
+    hf_splits: ClassVar[dict[str, str]] = {'train': 'train', 'test': 'test'}

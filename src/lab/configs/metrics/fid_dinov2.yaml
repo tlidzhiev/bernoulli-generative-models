@@ -1,0 +1,7 @@
+# FD_DINOv2 (needs `uv sync --extra dinov2`)
+device: "auto"
+train: []
+inference:
+  - _target_: lab.metrics.fid.FID
+    features: dinov2
+    device: ${metrics.device}

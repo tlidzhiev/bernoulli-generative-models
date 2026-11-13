@@ -1,2 +1,13 @@
-train: null
-inference: null
+# images are stored resized to 268 (see lab.dataset.images), as the original
+train:
+  img:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: torchvision.transforms.v2.RandomCrop
+        size: 256
+      - _target_: torchvision.transforms.v2.RandomHorizontalFlip
+        p: 0.5
+inference:
+  img:
+    _target_: torchvision.transforms.v2.CenterCrop
+    size: 256

@@ -4,18 +4,23 @@ hydra:
 
 defaults:
   - _self_
-  - dataset: mnist_test
+  - dataset: celebahq_inference
   - dataloader: default
   - transforms: default
-  - model: baseline
-  - metrics: default
+  - model: bld
+  - bae: c64
+  - criterion: ${model} # the loss with the same name as the model
+  - metrics: fid
 
 inferencer:
-  device_tensors: ["img", "label"]
+  temperature: 1.0  # sampling temperature (the paper uses 0.9 for LSUN Churches)
+  num_steps: null  # null for all diffusion steps, int <= model.num_timesteps for fewer
+  save_images: 64  # generated images saved per partition, null for all of them
+  device_tensors: ["img"]
   device: "auto"  # device name or "auto"
-  use_bfloat16: false
-  compile: null  # null (eager) or torch.compile kwargs, e.g. {mode: default, fullgraph: false}
+  amp: null  # null (full precision) or "bfloat16"
+  compile: null  # null (eager) or torch.compile kwargs for the denoiser, e.g. {mode: default, fullgraph: false}
   seed: 42
   from_pretrained: null  # path to the model checkpoint (*.pth file)
   use_ema: true  # load EMA (shadow) weights from checkpoint instead of raw weights
-  save_path: "default"  # predictions saved to data/saved/{save_path}/{partition}/
+  save_path: "default"  # logs saved to data/saved/{save_path}/

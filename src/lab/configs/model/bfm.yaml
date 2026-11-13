@@ -1,0 +1,11 @@
+_target_: lab.model.flow.BernoulliFlowMatching
+num_timesteps: 64
+denoiser:
+  _target_: lab.model.denoiser.DenoisingTransformer
+  codebook_size: 64
+  latent_size: 16
+  num_timesteps: ${..num_timesteps}
+  embed_dim: 768
+  num_heads: 12
+  num_layers: 24
+  condition: none

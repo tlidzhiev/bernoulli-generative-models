@@ -42,6 +42,12 @@ class TrainerConfig:
     log_images: int = 16
     debug: bool = False
 
+    # Binary latent diffusion
+    deterministic_latents: bool = False  # threshold the BAE probabilities instead of sampling
+    sample_temperature: float = 1.0  # sampling temperature of the logged images
+    sample_num_steps: int | None = None  # None for all diffusion steps
+    sample_seed: int | None = None  # seed of the sampling noise of the logged images (None: random)
+
     # Checkpoints
     checkpoint_dir: str
     resume_from: str | None = None
